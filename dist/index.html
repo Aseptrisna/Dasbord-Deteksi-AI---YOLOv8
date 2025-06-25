@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Deteksi Kamera AI</title>
+    <!-- Impor Tailwind CSS untuk styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Impor Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Impor ikon dari Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        /* Mengatur font default ke Inter */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* bg-gray-900 */
+        }
+        /* Style untuk scrollbar agar lebih modern */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937; /* bg-gray-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563; /* bg-gray-600 */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* bg-gray-500 */
+        }
+        /* Style untuk modal */
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+        /* Placeholder styling */
+        .placeholder-card {
+            background-color: #1f2937; /* bg-gray-800 */
+            border: 1px solid #374151; /* border-gray-700 */
+        }
+        .placeholder-glow div {
+            background: #374151; /* bg-gray-700 */
+            animation: glow 1.5s infinite;
+        }
+        @keyframes glow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="text-gray-200">
+
+    <!-- Container Utama -->
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+
+        <!-- Header -->
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl font-bold text-white mb-2">Dasbord Deteksi AI - YOLOv8</h1>
+            <p class="text-lg text-gray-400"></p>
+        </header>
+
+        <!-- Kontainer untuk card data -->
+        <div id="data-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Placeholder loading akan ditampilkan di sini oleh JS -->
+        </div>
+
+        <!-- Kontrol Paginasi -->
+        <div id="pagination-controls" class="flex items-center justify-center mt-10 space-x-4">
+            <!-- Tombol paginasi akan diisi oleh JS -->
+        </div>
+
+        <!-- Footer -->
+        <footer class="mt-16 pt-8 border-t border-gray-800 text-center text-sm text-gray-500">
+            <p class="font-semibold">Create By A. Trisna Setiawan & Gemini AI</p>
+            <p class="mt-1">Support By PT. LSKK &amp; Pustekhan ITB</p>
+        </footer>
+
+    </div>
+
+    <!-- Modal untuk Detail Deteksi -->
+    <div id="detail-modal" class="modal fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 opacity-0 pointer-events-none z-50">
+        <div id="modal-content" class="bg-gray-800 w-full max-w-4xl rounded-xl shadow-2xl border border-gray-700 transform scale-95 transition-transform duration-300">
+            <!-- Konten Modal akan diisi oleh JS -->
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elemen-elemen DOM
+            const dataContainer = document.getElementById('data-container');
+            const paginationControls = document.getElementById('pagination-controls');
+            const detailModal = document.getElementById('detail-modal');
+            const modalContent = document.getElementById('modal-content');
+
+            // State aplikasi
+            let currentPage = 1;
+            let totalPages = 1;
+            const limit = 10;
+            const apiUrl = 'https://api-iot-log.lskk.co.id/v1/reports/company?companyGuid=COMPANY-0a3a303e-7dd0-4246-ad21-d675e77904b4-2024&type=AIProcessing-yolov8';
+
+            // Fungsi untuk mengambil data dari API
+            async function fetchData(page) {
+                showLoadingPlaceholders();
+                try {
+                    const response = await fetch(`${apiUrl}&page=${page}&limit=${limit}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const result = await response.json();
+                    
+                    if (result.success && result.data) {
+                        renderData(result.data.data);
+                        currentPage = result.data.currentPage;
+                        totalPages = result.data.totalPages;
+                        renderPagination();
+                    } else {
+                        showError('Gagal mengambil data: Format respons tidak valid.');
+                    }
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                    showError(`Tidak dapat terhubung ke server. Silakan coba lagi nanti. Error: ${error.message}`);
+                }
+            }
+            
+            // Fungsi untuk menampilkan placeholder saat loading
+            function showLoadingPlaceholders() {
+                dataContainer.innerHTML = ''; // Kosongkan kontainer
+                for (let i = 0; i < limit; i++) {
+                    const placeholder = `
+                        <div class="placeholder-card rounded-lg p-4 animate-pulse">
+                            <div class="placeholder-glow">
+                                <div class="h-40 rounded-lg mb-4"></div>
+                                <div class="h-6 w-3/4 rounded mb-2"></div>
+                                <div class="h-4 w-1/2 rounded mb-4"></div>
+                                <div class="flex flex-wrap gap-2">
+                                    <div class="h-6 w-1/4 rounded-full"></div>
+                                    <div class="h-6 w-1/4 rounded-full"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    dataContainer.innerHTML += placeholder;
+                }
+            }
+
+            // Fungsi untuk menampilkan pesan error
+            function showError(message) {
+                dataContainer.innerHTML = `
+                    <div class="col-span-full bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded-lg text-center">
+                        <p class="font-bold">Terjadi Kesalahan</p>
+                        <p class="text-sm">${message}</p>
+                    </div>
+                `;
+                paginationControls.innerHTML = '';
+            }
+            
+            // Mapping nama kelas ke ikon dan warna
+            function getDetectionStyle(className) {
+                const styles = {
+                    person: { icon: 'user', color: 'blue' },
+                    person_with_mask: { icon: 'user-plus', color: 'green' },
+                    person_sad: { icon: 'smiley-sad', color: 'yellow' },
+                    person_tired: { icon: 'bed', color: 'orange' },
+                    cat: { icon: 'cat', color: 'purple' },
+                    dog: { icon: 'dog', color: 'indigo' },
+                    vehicle: { icon: 'car', color: 'pink' },
+                    lab_equipment: { icon: 'flask', color: 'teal' },
+                    furniture: { icon: 'armchair', color: 'cyan' },
+                    electronics: { icon: 'desktop', color: 'lime' },
+                    default: { icon: 'question', color: 'gray' }
+                };
+                return styles[className] || styles.default;
+            }
+
+            // Fungsi untuk merender data ke dalam card
+            function renderData(data) {
+                dataContainer.innerHTML = ''; // Kosongkan kontainer
+                if (data.length === 0) {
+                     dataContainer.innerHTML = `<div class="col-span-full text-center py-10"><p class="text-gray-400">Tidak ada data untuk ditampilkan.</p></div>`;
+                     return;
+                }
+
+                data.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-gray-800 rounded-xl overflow-hidden border border-gray-700 transform hover:-translate-y-1 transition-transform duration-300 shadow-lg hover:shadow-cyan-500/10';
+                    
+                    let totalDetections = 0;
+                    let detectionTags = '';
+                    if (item.counts) {
+                        for (const [key, value] of Object.entries(item.counts)) {
+                           if (value > 0) {
+                               totalDetections += value;
+                               const style = getDetectionStyle(key);
+                               detectionTags += `
+                                   <span class="inline-flex items-center bg-${style.color}-800 text-${style.color}-200 text-xs font-medium px-2.5 py-1 rounded-full border border-${style.color}-700">
+                                       <i class="ph ph-${style.icon} mr-1.5 text-base"></i>
+                                       ${key.replace(/_/g, ' ')}: ${value}
+                                   </span>
+                               `;
+                           }
+                        }
+                    }
+
+                    if (totalDetections === 0) {
+                        detectionTags = '<span class="text-sm text-gray-500 italic">Tidak ada objek terdeteksi</span>';
+                    }
+
+                    card.innerHTML = `
+                        <div class="relative">
+                            <img src="${item.imageUrl}" alt="Capture from ${item.reporterName}" class="w-full h-48 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/600x400/111827/374151?text=Image+Not+Found';">
+                            <div class="absolute top-2 right-2 bg-black bg-opacity-60 px-2 py-1 rounded-md text-xs font-semibold">${item.reporterName}</div>
+                        </div>
+                        <div class="p-4">
+                            <p class="text-sm text-gray-400 mb-2 flex items-center"><i class="ph ph-clock mr-2"></i>${item.datetime}</p>
+                            <h3 class="font-bold text-lg mb-3 text-white">Deteksi Objek</h3>
+                            <div class="flex flex-wrap gap-2 min-h-[40px]">
+                                ${detectionTags}
+                            </div>
+                            <button class="view-details-btn mt-4 w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center">
+                                <i class="ph ph-magnifying-glass mr-2"></i>Lihat Detail
+                            </button>
+                        </div>
+                    `;
+                    
+                    card.querySelector('.view-details-btn').addEventListener('click', () => showModal(item));
+                    dataContainer.appendChild(card);
+                });
+            }
+
+            // Fungsi untuk merender kontrol paginasi
+            function renderPagination() {
+                paginationControls.innerHTML = '';
+                
+                const prevButton = document.createElement('button');
+                prevButton.innerHTML = `<i class="ph ph-arrow-left"></i><span class="hidden sm:inline ml-2">Sebelumnya</span>`;
+                prevButton.className = 'px-4 py-2 bg-gray-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-colors duration-200 flex items-center';
+                prevButton.disabled = currentPage === 1;
+                prevButton.addEventListener('click', () => fetchData(currentPage - 1));
+                paginationControls.appendChild(prevButton);
+
+                const pageInfo = document.createElement('span');
+                pageInfo.className = 'px-4 py-2 text-gray-300';
+                pageInfo.textContent = `Halaman ${currentPage} dari ${totalPages}`;
+                paginationControls.appendChild(pageInfo);
+                
+                const nextButton = document.createElement('button');
+                nextButton.innerHTML = `<span class="hidden sm:inline mr-2">Berikutnya</span><i class="ph ph-arrow-right"></i>`;
+                nextButton.className = 'px-4 py-2 bg-gray-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-colors duration-200 flex items-center';
+                nextButton.disabled = currentPage === totalPages;
+                nextButton.addEventListener('click', () => fetchData(currentPage + 1));
+                paginationControls.appendChild(nextButton);
+            }
+            
+            // Fungsi untuk menampilkan modal detail
+            function showModal(item) {
+                let detectionsHtml = '';
+                if(item.detections) {
+                    for(const [category, dets] of Object.entries(item.detections)) {
+                        if(dets.length > 0) {
+                             const style = getDetectionStyle(category);
+                             detectionsHtml += `<h4 class="text-lg font-semibold mt-4 mb-2 text-${style.color}-300 capitalize flex items-center"><i class="ph ph-${style.icon} mr-2"></i> ${category.replace(/_/g, ' ')} (${dets.length})</h4>`;
+                             detectionsHtml += '<ul class="space-y-2 pl-5 list-disc list-inside text-gray-400">';
+                             dets.forEach(d => {
+                                const confidence = (d.confidence * 100).toFixed(2);
+                                const bbox = d.bbox.map(b => Math.round(b)).join(', ');
+                                detectionsHtml += `<li>Kepercayaan: <span class="font-semibold text-white">${confidence}%</span> | BBox: <span class="font-mono text-sm">${bbox}</span> ${d.emotion ? `| Emosi: <span class="font-semibold text-white">${d.emotion}</span>` : ''}</li>`;
+                             });
+                             detectionsHtml += '</ul>';
+                        }
+                    }
+                }
+
+                if (detectionsHtml === '') {
+                    detectionsHtml = '<p class="text-gray-500 italic mt-4">Tidak ada data deteksi detail yang tersedia.</p>';
+                }
+
+                modalContent.innerHTML = `
+                    <div class="p-6 relative">
+                         <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+                            <i class="ph-bold ph-x text-2xl"></i>
+                        </button>
+                        <h3 class="text-2xl font-bold text-white mb-4">Detail Laporan: ${item.reporterName}</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <img src="${item.imageUrl}" alt="Capture from ${item.reporterName}" class="w-full rounded-lg border border-gray-700" onerror="this.onerror=null;this.src='https://placehold.co/600x400/111827/374151?text=Image+Not+Found';">
+                                <div class="mt-4 bg-gray-900 p-3 rounded-lg text-sm space-y-2">
+                                    <p><strong class="text-gray-300">File:</strong> ${item.file_name}</p>
+                                    <p><strong class="text-gray-300">Waktu:</strong> ${item.datetime}</p>
+                                    <p><strong class="text-gray-300">Model:</strong> ${item.model} (v${item.version})</p>
+                                </div>
+                            </div>
+                            <div class="max-h-[450px] overflow-y-auto pr-2">
+                                <h4 class="text-xl font-bold text-white">Hasil Deteksi Rinci</h4>
+                                ${detectionsHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                detailModal.classList.remove('opacity-0', 'pointer-events-none');
+                modalContent.classList.remove('scale-95');
+                
+                document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+            }
+            
+            // Fungsi untuk menutup modal
+            function closeModal() {
+                detailModal.classList.add('opacity-0', 'pointer-events-none');
+                modalContent.classList.add('scale-95');
+            }
+
+            // Event listener untuk menutup modal saat klik di luar konten
+            detailModal.addEventListener('click', (event) => {
+                if (event.target === detailModal) {
+                    closeModal();
+                }
+            });
+            
+            // Event listener untuk menutup modal dengan tombol Escape
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    closeModal();
+                }
+            });
+
+            // Panggil fungsi fetch untuk pertama kali
+            fetchData(currentPage);
+        });
+    </script>
+
+</body>
+</html>
