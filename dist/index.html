@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Deteksi Kamera AI</title>
+    <title>Dasbor Deteksi AI - YOLOv8</title>
     <!-- Impor Tailwind CSS untuk styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Impor Google Fonts: Inter -->
@@ -59,7 +59,7 @@
         <!-- Header -->
         <header class="mb-8 text-center">
             <h1 class="text-4xl font-bold text-white mb-2">Dasbord Deteksi AI - YOLOv8</h1>
-            <p class="text-lg text-gray-400"></p>
+            <p id="datetime-display" class="text-lg text-gray-400"></p>
         </header>
 
         <!-- Kontainer untuk card data -->
@@ -74,7 +74,7 @@
 
         <!-- Footer -->
         <footer class="mt-16 pt-8 border-t border-gray-800 text-center text-sm text-gray-500">
-            <p class="font-semibold">Create By A. Trisna Setiawan & Gemini AI</p>
+            <p class="font-semibold">Create By A. Trisna Setiawan</p>
             <p class="mt-1">Support By PT. LSKK &amp; Pustekhan ITB</p>
         </footer>
 
@@ -95,6 +95,33 @@
             const paginationControls = document.getElementById('pagination-controls');
             const detailModal = document.getElementById('detail-modal');
             const modalContent = document.getElementById('modal-content');
+            const dateTimeDisplay = document.getElementById('datetime-display');
+
+            // Fungsi untuk menampilkan tanggal dan waktu saat ini (WIB)
+            function updateDateTime() {
+                if (dateTimeDisplay) {
+                    const now = new Date();
+                    const options = {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        timeZone: 'Asia/Jakarta',
+                        hour12: false
+                    };
+                    // Menggunakan formatter untuk mendapatkan format tanggal dan waktu dalam bahasa Indonesia
+                    const formatter = new Intl.DateTimeFormat('id-ID', options);
+                    const formattedString = formatter.format(now).replace(/\./g, ':') + ' WIB';
+                    dateTimeDisplay.textContent = formattedString;
+                }
+            }
+            
+            // Perbarui waktu segera setelah halaman dimuat, lalu setiap detik
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
 
             // State aplikasi
             let currentPage = 1;
